@@ -15,8 +15,7 @@ class VulnerabilityChecker:
     # Common SQL error patterns
     SQL_ERROR_PATTERNS = [
         re.compile(r"SQL syntax.*?MySQL", re.I),
-        re.compile(r"Warning.*?
-W mysqli?_", re.I),
+        re.compile(r"Warning.*mysqli?", re.I),
         re.compile(r"supplied argument is not a valid PostgreSQL", re.I),
         re.compile(r"Microsoft OLE DB Provider for ODBC Drivers", re.I),
         re.compile(r"Unclosed quotation mark after the character string", re.I),

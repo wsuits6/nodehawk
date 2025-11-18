@@ -15,7 +15,7 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 class SSLAdapter(HTTPAdapter):
     """An HTTPAdapter that can be configured with a custom SSL context."""
-    def __init__(self, ssl_context: ssl.Context = None, **kwargs):
+    def __init__(self, ssl_context: ssl.SSLContext = None, **kwargs):
         self.ssl_context = ssl_context
         super().__init__(**kwargs)
 
@@ -27,7 +27,7 @@ class SSLAdapter(HTTPAdapter):
             ssl_context=self.ssl_context
         )
 
-def get_ssl_context() -> ssl.Context:
+def get_ssl_context() -> ssl.SSLContext:
     """Creates and returns an SSL context that trusts default CAs."""
     context = ssl.create_default_context()
     return context
