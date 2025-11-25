@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 
 import requests
-from OpenSSL import SSL
+from OpenSSL import crypto
 from requests.adapters import HTTPAdapter
 from urllib3.exceptions import InsecureRequestWarning
 from urllib3.poolmanager import PoolManager
@@ -96,7 +96,7 @@ class RequestHandler:
 
 def get_server_certificate(hostname: str, port: int = 443) -> Optional[Dict[str, Any]]:
     """
-    Retrieves and returns the SSL certificate from a server.
+    Retrieves and returns the SSL certificate from a server in a clean, JSON-serializable format.
     
     Args:
         hostname: The hostname of the server.
@@ -114,23 +114,34 @@ def get_server_certificate(hostname: str, port: int = 443) -> Optional[Dict[str,
                     return None
                 
                 # Convert from DER to PEM for pyOpenSSL
-                x509 = SSL.load_certificate(SSL.FILETYPE_ASN1, cert_der)
+                x509 = crypto.load_certificate(crypto.FILETYPE_ASN1, cert_der)
+                
+                # Decode components into a clean dictionary
+                issuer = {k.decode('utf-8'): v.decode('utf-8') for k, v in x509.get_issuer().get_components()}
+                subject = {k.decode('utf-8'): v.decode('utf-8') for k, v in x509.get_subject().get_components()}
+                
+                extensions = []
+                for i in range(x509.get_extension_count()):
+                    ext = x509.get_extension(i)
+                    try:
+                        ext_name = ext.get_short_name().decode('utf-8')
+                        # The __str__ method of the extension object provides a readable value
+                        ext_value = str(ext)
+                        extensions.append({"name": ext_name, "value": ext_value})
+                    except Exception:
+                        # Skip extensions that can't be decoded
+                        continue
+
                 return {
-                    "issuer": dict(x509.get_issuer().get_components()),
-                    "subject": dict(x509.get_subject().get_components()),
-                    "serial_number": x509.get_serial_number(),
+                    "issuer": issuer,
+                    "subject": subject,
+                    "serial_number": str(x509.get_serial_number()),
                     "version": x509.get_version(),
-                    "not_before": x509.get_notBefore(),
-                    "not_after": x509.get_notAfter(),
+                    "not_before": x509.get_notBefore().decode('utf-8'),
+                    "not_after": x509.get_notAfter().decode('utf-8'),
                     "has_expired": x509.has_expired(),
-                    "signature_algorithm": x509.get_signature_algorithm(),
-                    "extensions": [
-                        {
-                            "name": x509.get_extension(i).get_short_name().decode('utf-8'),
-                            "value": str(x509.get_extension(i))
-                        }
-                        for i in range(x509.get_extension_count())
-                    ]
+                    "signature_algorithm": x509.get_signature_algorithm().decode('utf-8'),
+                    "extensions": extensions
                 }
     except (socket.gaierror, socket.timeout, ssl.SSLError, ConnectionRefusedError) as e:
         print(f"[Error] Could not connect to {hostname}:{port} for SSL check: {e}")

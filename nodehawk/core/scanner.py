@@ -64,44 +64,36 @@ class Scanner:
                 "error": "Failed to retrieve SSL certificate."
             }
 
-        # Clean up the certificate data for JSON output
-        issuer = {k.decode('utf-8'): v.decode('utf-8') for k, v in cert_info["issuer"]}
-        subject = {k.decode('utf-8'): v.decode('utf-8') for k, v in cert_info["subject"]}
-        
-        # Parse date strings into ISO 8601 format
-        not_before_str = cert_info.get('not_before', b'').decode('utf-8')
-        not_after_str = cert_info.get('not_after', b'').decode('utf-8')
-        
+        # Date parsing
         try:
-            not_before = datetime.strptime(not_before_str, '%Y%m%d%H%M%SZ').isoformat()
-            not_after = datetime.strptime(not_after_str, '%Y%m%d%H%M%SZ').isoformat()
-        except ValueError:
-            not_before = not_before_str
-            not_after = not_after_str
+            valid_from = datetime.strptime(cert_info['not_before'], '%Y%m%d%H%M%SZ').isoformat()
+            valid_until = datetime.strptime(cert_info['not_after'], '%Y%m%d%H%M%SZ').isoformat()
+        except (ValueError, KeyError):
+            valid_from = cert_info.get('not_before')
+            valid_until = cert_info.get('not_after')
 
-        # Check if domain matches certificate's Common Name or Subject Alternative Name
+        # Domain matching
         domain_match = False
-        if 'CN' in subject and subject['CN'] == self.domain:
+        subject = cert_info.get("subject", {})
+        if subject.get('CN') == self.domain:
             domain_match = True
         else:
             for ext in cert_info.get("extensions", []):
                 if ext.get("name") == "subjectAltName":
-                    # The value is a string like "DNS:*.example.com, DNS:example.com"
-                    alt_names = [name.strip().replace('DNS:', '') for name in ext["value"].split(',')]
+                    alt_names = [name.strip().replace('DNS:', '') for name in ext.get("value", "").split(',')]
                     if any(self.domain == name or (name.startswith('*') and self.domain.endswith(name[1:])) for name in alt_names):
                         domain_match = True
                         break
         
-        return {
-            "issuer": issuer,
-            "subject": subject,
-            "valid_from": not_before,
-            "valid_until": not_after,
-            "has_expired": cert_info.get("has_expired", True),
-            "domain_match": domain_match,
-            "signature_algorithm": cert_info.get("signature_algorithm", b"unknown").decode('utf-8'),
-            "serial_number": cert_info.get("serial_number")
-        }
+        # Prepare final report, keeping all original fields and adding processed ones
+        report = cert_info.copy()
+        report.update({
+            "valid_from": valid_from,
+            "valid_until": valid_until,
+            "domain_match": domain_match
+        })
+
+        return report
 
     def run_full_scan(self) -> Dict[str, Any]:
         """
