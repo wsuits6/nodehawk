@@ -11,7 +11,7 @@ setup(
     author='Your Name',
     author_email='your.email@example.com',
     description='A web reconnaissance and vulnerability scanning tool.',
-    long_description=open('README.md').read(),
+    long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/your-repo/NodeHawk',
     packages=find_packages(),

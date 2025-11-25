@@ -5,10 +5,24 @@ import os
 from datetime import datetime
 from typing import Dict, Any
 
+from colorama import Fore, Style
 from nodehawk.core.crawler import Crawler
 from nodehawk.core.scanner import Scanner
 from nodehawk.core.utils import format_url, RequestHandler
 from nodehawk.core.vuln_checker import VulnerabilityChecker
+
+def print_banner():
+    """Prints the NodeHawk banner."""
+    banner = fr"""{Fore.CYAN}
+ _   _                       _   _            _    
+| \ | | ___  _ __   ___   __| | | | __ _  ___| | __
+|  \| |/ _ \| '_ \ / _ \ / _` | | |/ _` |/ __| |/ /
+| |\  | (_) | | | | (_) | (_| | | | (_| | (__|   < 
+|_| \_|\___/|_| |_|\___/ \__,_| |_|\__,_|\___|_|\_\ 
+                                                  
+      {Style.RESET_ALL}{Fore.YELLOW}A web reconnaissance and vulnerability scanner.{Style.RESET_ALL}
+    """
+    print(banner)
 
 def run_scan(args: argparse.Namespace):
     """
@@ -114,6 +128,7 @@ def main():
     """
     Main entry point for the NodeHawk CLI.
     """
+    print_banner()
     parser = argparse.ArgumentParser(
         description="NodeHawk: A web reconnaissance and vulnerability scanning tool.",
         formatter_class=argparse.RawTextHelpFormatter
