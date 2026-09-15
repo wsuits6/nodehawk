@@ -1,2 +1,0 @@
-[console_scripts]
-nodehawk = nodehawk.cli.main:main
